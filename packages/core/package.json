@@ -1,0 +1,10 @@
+{
+  "name": "@airlock/core",
+  "version": "0.1.0",
+  "description": "Shared packet format + types for TheAgentDeck AirLock",
+  "main": "src/types.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Core types - no tests yet\""
+  }
+}

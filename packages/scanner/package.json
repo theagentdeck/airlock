@@ -1,0 +1,19 @@
+{
+  "name": "@airlock/scanner",
+  "version": "0.1.0",
+  "description": "Agent-side AirLock scanner — fetches, extracts, risk-scans, and builds evidence packets",
+  "main": "src/agent-wrapper.js",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/**/*.test.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cheerio": "^1.0.0",
+    "uuid": "^11.1.0",
+    "better-sqlite3": "^11.8.1",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+  }
+}

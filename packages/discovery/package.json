@@ -1,0 +1,7 @@
+{
+  "name": "@airlock/discovery",
+  "version": "0.1.0",
+  "description": ".well-known/airlock.json parsing, publisher discovery, and subscription infrastructure",
+  "main": "src/index.js",
+  "type": "module"
+}

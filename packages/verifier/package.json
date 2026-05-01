@@ -1,0 +1,7 @@
+{
+  "name": "@airlock/verifier",
+  "version": "0.1.0",
+  "description": "Ed25519 signature verification for publisher-signed AirLock packets",
+  "main": "src/index.js",
+  "type": "module"
+}

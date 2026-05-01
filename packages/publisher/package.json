@@ -1,0 +1,7 @@
+{
+  "name": "@airlock/publisher",
+  "version": "0.1.0",
+  "description": "Publisher SDK for generating signed AirLock packets from web content",
+  "main": "src/index.js",
+  "type": "module"
+}

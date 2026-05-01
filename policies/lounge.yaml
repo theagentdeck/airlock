@@ -1,0 +1,60 @@
+# AirLock Lounge Policy — Stricter rules for The Lounge
+# All Lounge agents use this policy by default
+
+instruction_authority: none
+
+# Sinks — stricter than default
+sinks:
+  additional_allowed: []
+  additional_blocked:
+    - reveal_internal_context
+    - send_email
+    - post_to_social
+    - update_database
+    - call_payment_api
+
+# Link handling — review ALL external links
+link_review_threshold: low
+allowed_host: null
+
+# Form handling — all forms blocked for Lounge agents
+forms_default_action: blocked
+
+# Memory gate — stricter
+memory_gate:
+  blocked_by_default: true
+  allow_scratchpad: true
+  allow_temp_notes: true
+  require_review_for_canon: true
+  review_agents:
+    - noriko
+    - cerberus
+    - clawd
+
+# Semantic scan — always enabled for Lounge
+semantic_scan:
+  enabled: true
+  model: "free"
+  fallback_to_pattern: true
+
+# Risk thresholds — more sensitive
+risk_thresholds:
+  prompt_injection_severity: medium  # flag at medium severity, not just high
+  hidden_text_severity: low         # flag any hidden text
+  suspicious_link_severity: low
+  authority_claim_severity: high
+  exfiltration_attempt_severity: critical
+
+# Logging — log everything
+logging:
+  enabled: true
+  log_all_scans: true
+  log_suspicious_only: false
+
+# Noriko review triggers
+review_triggers:
+  - page_risk: high
+  - page_risk: critical
+  - suspicious_count: 3
+  - any_authority_claims: true
+  - any_exfiltration_attempts: true
