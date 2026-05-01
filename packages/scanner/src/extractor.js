@@ -316,7 +316,7 @@ function extract(html, url) {
       }
       return { href, text: l.text || '', title: '' };
     }),
-    forms: (artifacts.forms || []).map(f => ({ fields: (f.controls || []).map(c => `${c.tag}:${c.type || 'text'}(${c.name || ''})`).join(', ') })),
+    forms: (artifacts.forms || []).map(f => ({ fields: (f.controls || []).map(c => `${c.tag}:${c.type || 'text'}(${c.name || ''})`), action: f.action || null })),
     images: (artifacts.images || []).map(i => ({ src: i.src || '', alt: i.alt || '', title: i.title || '' })),
     hiddenText: (artifacts.hiddenText || []).map(h => ({ text: h.text, reason: (h.reasons || []).join(', '), element: h.tag })),
     scripts: [],
