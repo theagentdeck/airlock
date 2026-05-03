@@ -88,6 +88,14 @@ Once Phase 1 is stable: **No raw external page enters agent context. AirLock fir
 
 Mandatory for: Scout, Ripley, Cairo, Cleopatra, Lila, Pixel, Coach, Ser Magnus, Noriko, LoungeFS.
 
-## Spec
+## Links
 
-Full spec at `SPEC.md`.
+- 🌐 **Landing page:** [airlock.codes](https://airlock.codes)
+- 🐙 **GitHub (scanner):** [github.com/mmsneaks11-max/airlock-scanner](https://github.com/mmsneaks11-max/airlock-scanner)
+- 📦 **NPM:** [npmjs.com/package/airlock-codes](https://www.npmjs.com/package/airlock-codes)
+- 𝕏 **X/Twitter:** [@AirLockcodes](https://x.com/Airlockcodes)
+- 📧 **Contact:** founders@theagentdeck.ai
+
+## License
+
+MIT — free forever for self-hosted use.
