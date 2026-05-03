@@ -1,0 +1,2 @@
+[console_scripts]
+airlock = airlock.__main__:main

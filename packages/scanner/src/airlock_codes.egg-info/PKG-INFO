@@ -1,0 +1,21 @@
+Metadata-Version: 2.4
+Name: airlock-codes
+Version: 0.1.0
+Summary: TheAgentDeck AirLock — Source-to-sink firewall for agentic web browsing
+Author-email: TheAgentDeck <founders@theagentdeck.ai>
+License-Expression: MIT
+Keywords: airlock,prompt-injection,agent-security,ai-safety,agentic,scanner
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Security
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Provides-Extra: dev
+Requires-Dist: build; extra == "dev"
+Requires-Dist: twine; extra == "dev"

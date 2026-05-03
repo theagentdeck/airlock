@@ -1,0 +1,10 @@
+pyproject.toml
+src/airlock/__init__.py
+src/airlock/__main__.py
+src/airlock/core.py
+src/airlock_codes.egg-info/PKG-INFO
+src/airlock_codes.egg-info/SOURCES.txt
+src/airlock_codes.egg-info/dependency_links.txt
+src/airlock_codes.egg-info/entry_points.txt
+src/airlock_codes.egg-info/requires.txt
+src/airlock_codes.egg-info/top_level.txt
