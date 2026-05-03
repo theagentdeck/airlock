@@ -1,9 +1,9 @@
 # TheAgentDeck AirLock — Product Specification
-**Version:** 0.3 Draft
+**Version:** 0.4 Draft
 **Date:** 2026-05-03
 **Status:** Pre-build — requirements gathered
 **Author:** Compiled from Kreez + Opus + Grok + Clawd synthesis
-**Changelog:** v0.3 — Publisher Network spec added (Winston/Kreez review 2026-05-03)
+**Changelog:** v0.4 — commercial_terms, access_receipt, enforcement reality, ICP wedge, Phase 1 scope fix (GPT review 2026-05-03)
 
 ---
 
@@ -434,6 +434,183 @@ Goals: implementable by a competent engineer in under a day, citable in security
   "contact": "airlock@example.com"
 }
 ```
+
+---
+
+## 8b. Commercial Terms Object
+
+*Added 2026-05-03 — machine-readable publisher licensing and pricing.*
+
+Every feed in `/.well-known/airlock.json` **should** carry a `commercial_terms` object. This is what makes "publishers get paid" a protocol, not just a pitch. Without it, an agent cannot determine whether it can pay, what it's buying, what it's allowed to do with the result, or how long the license lasts.
+
+```json
+{
+  "feeds": [
+    {
+      "name": "articles",
+      "url": "https://example.com/airlock/articles",
+      "frequency": "daily",
+      "tier": "free",
+      "commercial_terms": {
+        "access_model": "free",
+        "price": null,
+        "license": "summary_only",
+        "attribution_required": true,
+        "cache_ttl_seconds": 3600,
+        "training_allowed": false
+      }
+    },
+    {
+      "name": "premium-research",
+      "url": "https://example.com/airlock/premium",
+      "frequency": "hourly",
+      "tier": "paid",
+      "pricing_url": "https://example.com/airlock/pricing",
+      "commercial_terms": {
+        "access_model": "paid_read",
+        "price": {
+          "amount": 0.03,
+          "currency": "USD",
+          "unit": "verified_agent_read"
+        },
+        "license": "quote_allowed",
+        "attribution_required": true,
+        "cache_ttl_seconds": 86400,
+        "training_allowed": false,
+        "payment_provider": "airlock",
+        "receipt_required": true
+      }
+    }
+  ]
+}
+```
+
+### commercial_terms field reference
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `access_model` | `free \| paid_read \| subscription \| lead_fee \| referral` | How the publisher charges |
+| `price.amount` | number | Price per unit (null if free) |
+| `price.currency` | string | ISO 4217 currency code |
+| `price.unit` | string | e.g. `verified_agent_read`, `lookup`, `lead_click`, `monthly_agent` |
+| `license` | `summary_only \| quote_allowed \| retrieval_allowed \| commercial_allowed` | What the consuming agent may do with the content |
+| `attribution_required` | boolean | Must agent cite source in output? |
+| `cache_ttl_seconds` | number | How long agent may cache before re-paying |
+| `training_allowed` | boolean | May agent use content for fine-tuning/training? |
+| `payment_provider` | `airlock \| stripe \| self-hosted` | Who handles payment settlement |
+| `receipt_required` | boolean | Must agent submit access_receipt after use? |
+
+## 8c. Publisher Access Receipt
+
+*Added 2026-05-03 — revenue infrastructure for publishers.*
+
+When an agent accesses a paid packet, AirLock generates an `access_receipt`. This is distinct from the agent-side read receipt (Section 12) — this is the publisher's proof of transaction. It turns AirLock from "safe packet format" into publisher-side revenue infrastructure.
+
+```json
+{
+  "access_receipt": {
+    "receipt_id": "airlock_read_abc123",
+    "publisher": "example.com",
+    "agent_id": "agentdeck.scout",
+    "feed_name": "premium-research",
+    "accessed_at": "2026-05-03T12:00:00-04:00",
+    "use_declared": "summarize_for_user",
+    "content_hash": "sha256:xyz789",
+    "charged": true,
+    "amount": 0.03,
+    "currency": "USD",
+    "publisher_payout": 0.021,
+    "airlock_fee": 0.009,
+    "payment_provider": "airlock",
+    "status": "settled"
+  }
+}
+```
+
+**Receipt lifecycle:**
+1. Agent requests paid packet, declares intended use (`summarize_for_user`, `quote_only`, `lead_click`, etc.)
+2. AirLock validates agent has pre-paid or credit
+3. Packet delivered with `receipt_required: true`
+4. Agent confirms use within declared scope (or amends)
+5. AirLock settles payment, generates receipt, notifies publisher
+6. Publisher credits account; AirLock debits platform fee
+
+## 8d. Enforcement Reality
+
+*Added 2026-05-03 — publisher trust requires honesty about limitations.*
+
+AirLock's positioning ("agent-era robots.txt, but with money and permissions attached") invites an immediate question: **"What stops a bad agent from ignoring this?"**
+
+The answer must be explicit. Credible enforcement requires honesty about what AirLock can and cannot do.
+
+> **AirLock cannot physically stop every crawler on the open web.** It is not a firewall, not a network filter, not a legal gate. Any determined scraper can ignore `/.well-known/airlock.json` and grab content directly.
+
+**What AirLock can do:**
+
+- **Make compliant agents safer and easier to serve** — compliant agents get verified packets, clean content, and lower risk scores. AirLock is the easy button for agents that want to play by the rules.
+- **Create a paid trusted lane** — publishers who want compensation can require payment before delivering packets. Compliant agents pay and get access. Non-compliant agents get nothing or stale cached free content.
+- **Produce receipts and audit trails** — every paid access generates a machine-readable receipt. Publishers have proof of access. Agents have proof of payment and license scope.
+- **Let publishers prefer/whitelist verified agents** — `agent_access` policy can specify that only agents from known platforms (e.g. `agentdeck.*`, `openai.*`) get certain content. Unidentified agents get the free tier or nothing.
+- **Let agent platforms prove they consumed licensed packets** — agent platforms (TheAgentDeck, OpenAI, Anthropic, etc.) can demonstrate to publishers that their agents complied with license terms. This is B2B trust infrastructure.
+- **Downgrade or block non-compliant agents from registry access** — if an agent is found to violate publisher licenses (e.g. cached content beyond TTL, used content without attribution, accessed paid content without paying), AirLock can revoke its registry standing and flag it across the network.
+
+**The realistic pitch to publishers:**
+
+> "AirLock won't stop the bad actors. But it creates a trusted, paying, attributed lane — and makes your content *more* useful to the agents that do pay, which is how you grow the publisher side of the network."
+
+This honesty is a feature, not a weakness. It sets accurate expectations and attracts publishers who understand the model.
+
+## 8e. Phase Roadmap — Phase 1 vs Phase 4 Discovery Clarification
+
+*Added 2026-05-03 — resolves conflict between Phase 1 and Phase 4 scope.*
+
+The original spec listed "publisher discovery (check .well-known first)" in Phase 1, while Phase 4 described the full discovery/subscription infrastructure. These are different things. Clarifying:
+
+**Phase 1 discovery = static packet lookup only:**
+- Attempt `/.well-known/airlock.json` lookup
+- Verify static publisher packet if present
+- Fall back to scanner if `.well-known` absent or signature unverifiable
+- No registry, no paid access enforcement, no subscription delivery, no publisher onboarding system, no account management
+
+**Phase 4 discovery = full infrastructure:**
+- Hosted AirLock Publisher Registry at `airlock.codes`
+- Publisher account system with dashboard, API keys, feed management
+- Paid access enforcement via payment gateway
+- Feed subscription delivery via webhooks and polling
+- Real-time delivery (SSE/WebSocket for high-frequency feeds)
+- Publisher onboarding UI (DNS verification, feed registration, payout setup)
+
+## 8f. Initial Publisher ICP — Card Shops First
+
+*Added 2026-05-03 — narrow wedge, fast proof.*
+
+**Why card shops / collectible marketplaces are the right first ICP:**
+
+The general publisher pitch ("get paid when agents use your content") is strategically correct but hard to prove for most content categories. Blog posts, news articles, and research reports have ambiguous ROI from agent traffic. But card shops have a concrete, measurable conversion path:
+
+> *"Let buyer agents find your inventory safely and send ready-to-buy traffic."*
+
+**Card shop value prop is immediate:**
+- Agent-readable inventory feeds (what do you have in stock?)
+- Buyer-agent traffic (verified collectors, not random browsers)
+- Product availability lookups (is this PSA 9 in stock anywhere?)
+- Attribution in collector-agent answers ("I found this at [Shop Name]")
+- Paid lead/referral events ($0.25–$1.00 per qualified checkout intent)
+- Protection from raw scraping (stop competitors scraping your inventory at scale)
+
+This connects directly to **Text2List.app** and **TheAgentDeck's** core market. T2L already helps collectors and sellers manage inventory. AirLock Publisher gives card shops a way to transact safely with buyer agents.
+
+**Initial Publisher Network wedge:**
+> Card shops and collectible inventory sites with public-facing product feeds.
+
+**Not** the first target: general content publishers, blogs, news sites, docs companies. Those come in Phase 2+ once the card shop model is proven and the SDK is refined.
+
+**Card shop onboarding path (Phase 1 — simplified):**
+1. Connect shop's inventory feed URL to AirLock Publisher
+2. AirLock generates signed agent-readable packets from feed
+3. Buyer agents query and get verified inventory data
+4. Publisher sees agent traffic in analytics
+5. Optional: enable paid lead events or per-lookup pricing
 
 ---
 
