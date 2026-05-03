@@ -14,26 +14,37 @@ AirLock is a two-sided protocol:
 
 ## Quick Start
 
-```bash
-cd ~/clawd/airlock/packages/scanner
-npm install
+### Install
 
-# Scan a URL
-node src/cli.js https://example.com
-node src/cli.js https://example.com --json
-node src/cli.js https://example.com --md
+```bash
+npm install airlock-codes
 ```
 
-## API
+### CLI
+
+```bash
+airlock scan https://example.com
+airlock scan https://example.com --json
+airlock scan https://example.com --md
+```
+
+### Python
+
+```bash
+pip install airlock-codes
+airlock scan https://example.com
+```
+
+### API
 
 ```js
-import { scan } from './packages/scanner/src/agent-wrapper.js';
+import { scan } from 'airlock-codes';
 
 const { packet } = await scan({
   url: 'https://example.com/thread',
   agent: 'Scout',
   mission: 'collector sentiment research',
-  mode: 'read',        // 'read' | 'inspect' | 'interact'
+  mode: 'read',
   memoryWrite: false,
 });
 ```
