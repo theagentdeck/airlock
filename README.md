@@ -91,7 +91,7 @@ Mandatory for: Scout, Ripley, Cairo, Cleopatra, Lila, Pixel, Coach, Ser Magnus, 
 ## Links
 
 - 🌐 **Landing page:** [airlock.codes](https://airlock.codes)
-- 🐙 **GitHub (scanner):** [github.com/mmsneaks11-max/airlock-scanner](https://github.com/mmsneaks11-max/airlock-scanner)
+
 - 📦 **NPM:** [npmjs.com/package/airlock-codes](https://www.npmjs.com/package/airlock-codes)
 - 𝕏 **X/Twitter:** [@AirLockcodes](https://x.com/Airlockcodes)
 - 📧 **Contact:** founders@theagentdeck.ai
