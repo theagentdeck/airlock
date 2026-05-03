@@ -1,0 +1,42 @@
+# AirLock Default Policy
+# Used for external customers and public-facing use
+
+instruction_authority: none
+
+# Sinks
+sinks:
+  additional_allowed: []
+  additional_blocked:
+    - reveal_internal_context
+
+# Link handling
+link_review_threshold: medium  # 'none' | 'low' | 'medium' | 'high'
+allowed_host: null             # null = any host, set to restrict
+
+# Form handling
+forms_default_action: blocked  # 'blocked' | 'requires_approval' | 'allowed'
+
+# Memory gate
+memory_gate:
+  blocked_by_default: true
+  allow_scratchpad: true
+  allow_temp_notes: true
+  require_review_for_canon: true
+
+# Semantic scan config
+semantic_scan:
+  enabled: true
+  model: "free"    # 'free' | 'cheap' | 'standard'
+  fallback_to_pattern: true
+
+# Suspicious content thresholds
+risk_thresholds:
+  prompt_injection_severity: high
+  hidden_text_severity: medium
+  suspicious_link_severity: medium
+
+# Logging
+logging:
+  enabled: true
+  log_all_scans: true
+  log_suspicious_only: false

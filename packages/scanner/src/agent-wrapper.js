@@ -22,10 +22,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Load policies
 const defaultPolicy = YAML.load(
-  readFileSync(resolve(__dirname, '../../../policies/default.yaml'), 'utf8')
+  readFileSync(resolve(__dirname, '../policies/default.yaml'), 'utf8')
 );
 const loungePolicy = YAML.load(
-  readFileSync(resolve(__dirname, '../../../policies/lounge.yaml'), 'utf8')
+  readFileSync(resolve(__dirname, '../policies/lounge.yaml'), 'utf8')
 );
 
 /**

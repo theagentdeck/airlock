@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 import { mkdirSync, existsSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DB_PATH = resolve(__dirname, '../../../airlock.db');
+const DB_PATH = resolve(__dirname, '../../airlock.db');
 
 // Ensure directory exists
 const dbDir = dirname(DB_PATH);
@@ -18,12 +18,20 @@ if (!existsSync(dbDir)) {
 }
 
 let _db = null;
+let _dbDisabled = false;
 
 function getDb() {
+  if (_dbDisabled) return null;
   if (!_db) {
-    _db = new Database(DB_PATH);
-    _db.pragma('journal_mode = WAL');
-    initSchema(_db);
+    try {
+      _db = new Database(DB_PATH);
+      _db.pragma('journal_mode = WAL');
+      initSchema(_db);
+    } catch (err) {
+      // DB not available (read-only install, no write perms) — disable silently
+      _dbDisabled = true;
+      return null;
+    }
   }
   return _db;
 }
@@ -91,6 +99,7 @@ export async function logScan({
   timestamp,
 }) {
   const db = getDb();
+  if (!db) return; // DB unavailable in read-only install
 
   const stmt = db.prepare(`
     INSERT INTO airlock_scans (
@@ -127,6 +136,7 @@ export async function logScan({
  */
 export async function logDecision(scanId, decision, reason) {
   const db = getDb();
+  if (!db) return;
   const stmt = db.prepare(`
     INSERT INTO airlock_decisions (scan_id, decision, reason)
     VALUES (?, ?, ?)
@@ -148,6 +158,7 @@ export async function logDecision(scanId, decision, reason) {
  */
 export async function logMemoryPromotion(scanId, promotedBy, claim) {
   const db = getDb();
+  if (!db) return;
 
   const insert = db.prepare(`
     INSERT INTO airlock_memory_promotions (scan_id, promoted_by, claim)
