@@ -1,8 +1,9 @@
 # TheAgentDeck AirLock — Product Specification
-**Version:** 0.2 Draft
-**Date:** 2026-05-01
+**Version:** 0.3 Draft
+**Date:** 2026-05-03
 **Status:** Pre-build — requirements gathered
 **Author:** Compiled from Kreez + Opus + Grok + Clawd synthesis
+**Changelog:** v0.3 — Publisher Network spec added (Winston/Kreez review 2026-05-03)
 
 ---
 
@@ -52,6 +53,21 @@ A spaceship airlock doesn't mean "space is evil." It means "space is not the sam
 ### Target Market Timing
 Every company deploying agents in 2026–2027 will hit the "how do we let them browse without getting owned" problem. Most will build convenience-first. AirLock owns the opposite position: safety-first, evidence-only. That's a defensible market position.
 
+### The Two-Sided Wedge
+AirLock serves two distinct customers with different value propositions:
+
+**Agent operators ask:** "How do I browse safely?"
+- Answer: Airlock Scanner — source-to-sink firewall, evidence packets, memory gate
+
+**Publishers ask:** "How do I benefit from agents browsing my site?"
+- Answer: AirLock Publisher Network — signed packets, attribution, analytics, monetization
+
+**The internal tagline (do not use publicly):** *AirLock is a toll road for trusted AI access to the web.*
+
+**Public version:** *AirLock creates a trusted exchange layer between AI agents and publishers.*
+
+The scanner is the wedge. The Publisher Network is the moat. Both matter. The Publisher Network is the bigger category.
+
 ---
 
 ## 2. The Two-Sided Protocol
@@ -78,6 +94,118 @@ For the **un-Airlocked legacy web:** agents fall back to the scanner (v0.1). For
 4. Otherwise → run scanner pipeline → return scanner-generated packet
 
 Both paths produce identical packet shapes. No difference to consuming agent.
+
+---
+
+## 2b. Publisher Network (Phase 3 — Core Brief)
+
+*Added 2026-05-03 from Winston/Kreez review.*
+
+### The Structural Miss
+
+The original spec was framed entirely from the agent/operator side: "Protect my agents from untrusted pages." But the bigger network opportunity is the publisher side.
+
+Winston caught it: AirLock has two customers. Agent operators ask "How do I browse safely?" Publishers ask "How do I benefit from agents browsing me?" Both matter. But the second one is what makes AirLock more than a security tool — it makes it **infrastructure**.
+
+### Core Publisher Value Prop
+
+**AirLock turns AI traffic from invisible scraping into trusted, measurable, monetizable agent access.**
+
+Publishers don't just "add signing keys and SDK integration." They want to know: *Why should I care? What do I get?*
+
+Answer: **You get paid, attributed, protected, and preferred by agents.**
+
+### The Six Publisher Benefits
+
+**1. Get paid when agents use your content**
+Publishers expose signed AirLock evidence packets. Agents, businesses, or agent platforms pay to access those packets.
+
+Example pricing:
+- "This pricing guide costs $0.03 per verified agent read."
+- "This product availability feed costs $0.01 per lookup."
+- "This research archive costs $10/month per agent team."
+- "This marketplace lead costs $0.25 when an agent requests contact/checkout."
+
+AirLock takes a platform fee. Publisher gets the rest.
+
+Core pitch: *Don't scrape us. Query our signed agent-safe feed.*
+
+**2. Get attribution in agent answers**
+Publisher-signed packets carry source identity. Agents that consume the packet are transparently attributed to the publisher. Publishers can say: "If agents use our data, they cite us." Not legally perfect by itself, but product-wise powerful.
+
+**3. Get analytics on agent traffic**
+Publishers see what traditional analytics can't:
+- Which agents requested content
+- What content was accessed
+- What claims were extracted
+- What packets were generated
+- What downstream action happened
+- Whether the agent cited them
+- Whether the agent converted to lead/purchase/signup
+
+New analytics category: **Agent traffic intelligence.**
+
+**4. Protect content from prompt injection misuse**
+Publishers don't want random hidden HTML, comments, ads, third-party widgets, or compromised embeds causing agents to classify their site as unsafe.
+
+AirLock Publisher SDK helps them generate clean signed packets directly. Instead of agents scanning messy raw pages, publishers provide official sanitized agent-readable packets. Their site becomes more trusted by agents.
+
+**5. Become preferred by AI agents**
+If AirLock becomes a trusted agent boundary, pages with publisher-signed packets rank higher in agent workflows because they are: easier to parse, safer to ingest, provenance-signed, commercially licensed, structured, lower-risk, memory-safe, source-attributed.
+
+Publisher pitch: *Be the source agents are allowed to trust.*
+
+**6. Control what agents are allowed to do**
+Publishers define policies per feed via `airlock.json`:
+
+```json
+{
+  "agent_access": {
+    "summarize": true,
+    "quote": true,
+    "train_on": false,
+    "memory_write": "citation_required",
+    "commercial_use": "paid",
+    "checkout": true,
+    "contact_user": false
+  }
+}
+```
+
+This is agent-era robots.txt, but with money and permissions attached.
+
+### Publisher Personas
+
+| Persona | What they get |
+|---------|---------------|
+| **Content publishers** — blogs, research sites, guides, news | Paid agent reads, citations, usage analytics, content licensing, safer AI ingestion |
+| **Marketplaces / stores** — card shops, collectible sites, inventory platforms | Agent-readable products, buyer-agent traffic, checkout intent, lead generation, cleaner product discovery, anti-scrape monetization |
+| **Forums / communities** — collectors forums, hobby boards | Controlled agent access, no raw scraping, anonymized/community-safe packets, policy around quoting, membership upsell |
+| **Docs / API companies** — developer docs, SaaS docs | Agents reading official docs instead of random copies, versioned packets, fewer hallucinated integrations, attribution, paid enterprise access |
+
+### The Flywheel
+
+```
+Publisher signs content → AirLock packetizes it → Agent reads safe packet → Publisher gets paid/credited
+```
+
+Publishers join free. Agents pay to access premium packets. AirLock takes a cut.
+
+### Publisher Payout Example
+
+For a card pricing site: A buyer agent asks for verified market context on "2023 Pokémon 151 Charizard SAR PSA 10." AirLock routes to signed publisher packets from trusted pricing/card sites. Agent pays $0.05 for the packet bundle. Publisher earns $0.035. AirLock keeps $0.015.
+
+For a card shop: Collector agent asks "Who has sealed 151 booster bundles in stock under $X?" Shop's signed inventory packet appears. If the user clicks/buys, shop pays referral fee or agent access fee.
+
+### Publisher Sign-Up Flow
+
+1. Publisher installs AirLock Publisher SDK
+2. SDK generates signed evidence packets from their pages
+3. Packets published via `/.well-known/airlock.json` feed
+4. Agents discover, verify, and consume packets
+5. Publisher receives attribution + analytics + revenue
+
+Integration target: under 1 hour for basic setup.
 
 ---
 
@@ -365,20 +493,31 @@ Phase 1 (v0.1 — 6 weeks): airlock.scan(url) → JSON evidence packet
   - Semantic layer routed through Compyoot
   - All Lounge agents use it for all external browsing
   - CLI for manual testing
+  - Scan caching: same-domain scans cached with short TTL (5 min) for scale
+  - Internal link handling: explicit scan on every new domain; same-domain trusted with crawl path mapping
+  - Memory promotion path: blocked-by-default claims require Noriko review; mechanism: ping via AgentDeck + review queue
 
-Phase 2 (v0.2 — 4 weeks): Protocol Spec
+Phase 2 (v0.2 — 4 weeks): Protocol Spec + JS Rendering
   - Publish airlock.codes/spec/v1
   - MIT-licensed, open, versioned
   - Implementable by a competent engineer in under a day
   - Reference implementations in JS/TS + Python alongside
+  - Key revocation mechanism: compromised publisher signing keys can be revoked
+  - Publisher trust scoring + dispute handling
+  - JS-rendered scan mode: headless browser passthrough for forums, GitHub READMEs, Discord embeds
 
-Phase 3 (v0.3 — 6 weeks): Publisher SDK
-  - Library publishers drop into their stack
-  - JS/TS first, Python second
-  - Canonicalizes content into packet format
-  - Auto-strips suspicious-looking instructions
-  - Signs and serves packets
-  - Integration target: under 1 hour
+Phase 3 (v0.3 — 6 weeks): AirLock Publisher Network
+  - Rename from "Publisher SDK" to "AirLock Publisher Network"
+  - Publisher SDK: JS/TS first, Python second
+  - Canonicalizes content into packet format, auto-strips injection text
+  - Signs and serves packets via airlock.json feed
+  - Publisher analytics dashboard (which agents, what content, what actions)
+  - Attribution layer: citations flow when agents use publisher packets
+  - Optional paid access: publishers set per-packet or per-feed pricing
+  - airlock.json policy engine: publishers control agent permissions per feed
+  - Publisher sign-up flow: under 1 hour for basic setup
+  - Revenue share model: AirLock takes platform fee, publisher keeps remainder
+  - Publishers join free (basic), pay for analytics + premium feed hosting
 
 Phase 4 (v0.4 — 6 weeks): Discovery + Subscription Infrastructure
   - .well-known/airlock.json discovery endpoint
@@ -422,6 +561,8 @@ Ship as a **Node library first.** Proxy and HTTP service are thin shells over th
 - Interact mode (→ Phase 4)
 - Agent-to-agent message airlocking (→ Phase 3)
 - HTTP service / dashboard / proxy mode (→ v0.2)
+- Publisher analytics dashboard (→ Phase 3)
+- Paid packet access (→ Phase 3)
 
 ---
 
@@ -470,6 +611,18 @@ Echo posts weekly AirLock summary to squad chat: scans run, injections detected,
 - Pillar #6 of TheAgentDeck.ai
 - The Stripe/MCP playbook: open spec, proprietary best implementation, network effects on both sides
 
+### Publisher Positioning (for airlock.codes landing page)
+
+Hero section for publishers:
+> *Publish once. Let agents read safely. Get credit when they do.*
+
+Subcopy:
+> AirLock Publisher lets websites create signed evidence packets for AI agents, with attribution, usage rules, analytics, and optional paid access.
+
+CTA: *Join Publisher Network*
+
+The AirLock Publisher Network is not a security add-on — it is a revenue and attribution channel for any site that wants to safely transact with AI agents.
+
 ### Ecosystem Opportunity
 Open the AirLock API to other agent frameworks (LangGraph, CrewAI, AutoGen, etc.) and become the de-facto safety layer the way Cloudflare became the de-facto edge security layer.
 
@@ -477,7 +630,11 @@ Open the AirLock API to other agent frameworks (LangGraph, CrewAI, AutoGen, etc.
 
 ## 15. The One-Line
 
-> *Agents may browse the web, but only through AirLock — where raw pages become evidence documents and hostile instructions become zero-authority warnings.*
+**Agent-facing:** *Agents may browse the web, but only through AirLock — where raw pages become evidence documents and hostile instructions become zero-authority warnings.*
+
+**Publisher-facing:** *Publish once. Let agents read safely. Get credit when they do.*
+
+**Internal tagline (do not use publicly):** *AirLock is a toll road for trusted AI access to the web.*
 
 ---
 
