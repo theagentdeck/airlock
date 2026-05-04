@@ -1,8 +1,9 @@
 {
   "name": "airlock",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "private": true,
   "type": "module",
+  "description": "Source-to-sink firewall for agentic web browsing",
   "scripts": {
     "scan": "node packages/scanner/src/cli.js",
     "test": "node --test test/**/*.test.js"
