@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Root tests
+        run: npm test
+
+      - name: Scanner CLI smoke test
+        run: node packages/scanner/src/cli.js --help
+
+      - name: Check for accidental secret commits
+        run: |
+          if git diff --cached | grep -qiE "(sk_live|api_key.*=|BEGIN.*PRIVATE|-----BEGIN RSA|twilio|sendgrid|resend)"; then
+            echo "ERROR: Potential secret detected in staged changes"
+            exit 1
+          fi
+          if git log -1 --format="%B" | grep -qiE "(sk_live|api_key.*=|BEGIN.*PRIVATE)"; then
+            echo "ERROR: Potential secret detected in commit message"
+            exit 1
+          fi
+
+      - name: No generated artifacts in repo
+        run: |
+          if git diff --cached --name-only | grep -qiE "(\.tgz|\.db|dist/.*\.whl|\.egg-info/)"; then
+            echo "ERROR: Generated artifacts detected in staged files"
+            exit 1
+          fi
