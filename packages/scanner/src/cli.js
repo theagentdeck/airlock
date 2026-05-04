@@ -1,29 +1,34 @@
 #!/usr/bin/env node
 /**
- * AirLock CLI — `airlock scan <url>`
- * Manual testing entry point for Phase 1.
+ * AirLock CLI — supports both `airlock <url>` and `airlock scan <url>`
  */
 
 import { scan } from './agent-wrapper.js';
 
 const args = process.argv.slice(2);
 
-if (!args[0] || args[0] === '--help' || args[0] === '-h') {
+// Strip the "scan" subcommand if user typed `airlock scan <url>`
+const cmd = args[0];
+const isScanSubcommand = cmd === 'scan' || cmd === 's';
+const urlArgIndex = isScanSubcommand ? 1 : 0;
+const url = args[urlArgIndex];
+
+if (!url || url === '--help' || url === '-h' || args.includes('--help') || args.includes('-h')) {
   console.log(`
 TheAgentDeck AirLock CLI
 
 Usage:
-  airlock scan <url>          Scan a URL and print the evidence packet
-  airlock scan <url> --json   Output raw JSON
-  airlock scan <url> --md     Output markdown summary
+  airlock <url>             Scan a URL and print the evidence packet
+  airlock scan <url>       Same as above (subcommand form)
+  airlock <url> --json     Output raw JSON
+  airlock <url> --md       Output markdown summary
 
 Example:
-  airlock scan https://example.com/forum/thread
+  airlock https://example.com/forum/thread
 `);
   process.exit(0);
 }
 
-const url = args[0];
 const format = args.includes('--json') ? 'json' : args.includes('--md') ? 'md' : 'summary';
 
 try {

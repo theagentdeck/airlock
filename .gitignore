@@ -1,1 +1,31 @@
 node_modules/
+
+# Generated artifacts
+*.tgz
+*.db
+*.egg-info/
+__pycache__/
+.pytest_cache/
+dist/
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build output
+packages/*/dist/
+packages/*/*.tgz
+packages/*/*.egg-info/

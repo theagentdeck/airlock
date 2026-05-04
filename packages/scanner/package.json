@@ -4,6 +4,9 @@
   "description": "TheAgentDeck AirLock — Source-to-sink firewall for agentic web browsing. Strips prompt injection, hostile instructions, and hidden content before your AI agent ever sees it.",
   "main": "src/agent-wrapper.js",
   "type": "module",
+  "bin": {
+    "airlock": "src/cli.js"
+  },
   "scripts": {
     "test": "node --test test/**/*.test.js"
   },

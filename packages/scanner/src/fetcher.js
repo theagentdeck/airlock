@@ -16,30 +16,116 @@ const AIRLOCK_UA = 'TheAgentDeck-AirLock/1.0 (+https://airlock.codes)';
 const FETCH_TIMEOUT_MS = 15000;
 const MAX_REDIRECTS = 5;
 
+// ── SSRF Protection ─────────────────────────────────────────────────────────
+
+/** Blocked IP ranges (SSRF protection) */
+const SSRF_BLOCKED_RANGES = [
+  { pattern: '127.0.0.0/8' },
+  { pattern: '10.0.0.0/8' },
+  { pattern: '172.16.0.0/12' },
+  { pattern: '192.168.0.0/16' },
+  { pattern: '169.254.0.0/16' },
+  { pattern: '::1' },
+  { pattern: 'fc00::/7' },
+  { pattern: '0.0.0.0/8' },
+];
+
+/** Cloud metadata IP ranges */
+const METADATA_IP_RANGES = ['169.254.169.254', 'metadata.google.internal'];
+
+// Minimal DNS resolver — blocks internal hostnames, checks final resolved IPs
+async function resolveAndValidateUrl(rawUrl) {
+  const parsed = new URL(rawUrl);
+
+  // Reject non-http schemes
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw new Error(`AirLock: only http/https supported, got ${parsed.protocol}`);
+  }
+
+  const hostname = parsed.hostname;
+
+  // Reject obviously internal hostnames
+  if (METADATA_IP_RANGES.includes(hostname)) {
+    throw new Error(`AirLock: blocked metadata endpoint ${hostname}`);
+  }
+
+  // Block numeric IP literals in blocked ranges
+  const numericIp = /^\d+\.\d+\.\d+\.\d+$/.test(hostname);
+  if (numericIp && isBlockedIP(hostname)) {
+    throw new Error(`AirLock: blocked private/reserved IP ${hostname}`);
+  }
+
+  // For DNS names, do a lookup and validate all returned IPs
+  if (!numericIp) {
+    try {
+      const { Resolver } = await import('dns');
+      const resolver = new Resolver({ timeout: 3000 });
+      const addresses = await resolver.resolve4(hostname).catch(() => []);
+      for (const addr of addresses) {
+        if (isBlockedIP(addr)) {
+          throw new Error(`AirLock: DNS resolution of ${hostname} resolves to blocked IP ${addr}`);
+        }
+      }
+    } catch (err) {
+      // ENOTFOUND or other DNS failure — let axios try anyway, it will fail naturally
+      if (err.message.startsWith('AirLock:')) throw err;
+    }
+  }
+
+  return parsed.href;
+}
+
+function isBlockedIP(ip) {
+  // Simple check — check octets against known private ranges
+  const octets = ip.split('.').map(Number);
+  if (octets.length !== 4) return false;
+
+  const [a, b, c, d] = octets;
+
+  // 127.x.x.x
+  if (a === 127) return true;
+  // 10.x.x.x
+  if (a === 10) return true;
+  // 172.16–31.x.x
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  // 192.168.x.x
+  if (a === 192 && b === 168) return true;
+  // 169.254.x.x (link-local)
+  if (a === 169 && b === 254) return true;
+  // 0.x.x.x
+  if (a === 0) return true;
+
+  return false;
+}
+
+// ── Fetcher ─────────────────────────────────────────────────────────────────
+
 /**
+ * Fetch a URL, checking for publisher discovery metadata but always running
+ * the normal scanner path unless the publisher packet is cryptographically verified.
+ *
  * @param {string} url
- * @returns {Promise<{html: string, redirectChain: string[], finalUrl: string, packet_origin: 'scanner' | 'publisher', publisherPacket: object|null}>}
+ * @returns {Promise<{html: string, redirectChain: string[], finalUrl: string,
+ *   packet_origin: 'scanner'|'publisher', publisherPacket: object|null,
+ *   publisherVerified: boolean, discoveryMeta: object|null}>}
  */
 export async function fetch(url) {
-  // Step 1: Check if publisher is Airlock-ready
-  const publisherResult = await checkPublisherDiscovery(url);
-  if (publisherResult.packet) {
-    return {
-      html: null,
-      redirectChain: [],
-      finalUrl: url,
-      packet_origin: 'publisher',
-      publisherPacket: publisherResult.packet,
-      publisherVerified: publisherResult.verified,
-    };
-  }
+  // Validate URL before any network call (SSRF protection)
+  await resolveAndValidateUrl(url);
+
+  // Step 1: Check discovery metadata — recorded but never bypasses scanning
+  const discoveryMeta = await checkPublisherDiscoveryMeta(url);
+  // publisherVerified will only be true if Phase 4 signature verification passes
+  // For now, always false (Phase 1/2) — discovery is logged but does NOT skip scanning
 
   // Step 2: Server-side fetch with redirect chain logging
   const redirectChain = [];
   let currentUrl = url;
-  let html = null;
 
+  // Validate each hop (SSRF check on every redirect target)
   for (let i = 0; i < MAX_REDIRECTS; i++) {
+    await resolveAndValidateUrl(currentUrl);
+
     // Honor robots.txt
     const robotsAllowed = await checkRobotsTxt(currentUrl);
     if (!robotsAllowed) {
@@ -53,8 +139,8 @@ export async function fetch(url) {
           'Accept': 'text/html,application/xhtml+xml',
         },
         timeout: FETCH_TIMEOUT_MS,
-        maxRedirects: 0, // handle redirects manually
-        validateStatus: (status) => status >= 200 && status < 400,
+        maxRedirects: 0,
+        // Follow redirects manually so we can validate each hop
       });
 
       // Check for redirect
@@ -65,8 +151,17 @@ export async function fetch(url) {
         continue;
       }
 
-      html = response.data;
-      break;
+      // discoveryMeta is recorded but does NOT bypass the scan.
+      // packet_origin remains 'scanner' unless a Phase 4 signature is verified.
+      return {
+        html: response.data,
+        redirectChain,
+        finalUrl: currentUrl,
+        packet_origin: 'scanner', // NEVER 'publisher' unless signature is cryptographically verified
+        publisherPacket: null,
+        publisherVerified: false,
+        discoveryMeta,
+      };
     } catch (err) {
       if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
         throw new Error(`AirLock: cannot reach ${currentUrl} — ${err.code}`);
@@ -78,26 +173,18 @@ export async function fetch(url) {
     }
   }
 
-  if (!html) {
-    throw new Error(`AirLock: exceeded max redirects (${MAX_REDIRECTS}) for ${url}`);
-  }
-
-  return {
-    html,
-    redirectChain,
-    finalUrl: currentUrl,
-    packet_origin: 'scanner',
-    publisherPacket: null,
-    publisherVerified: false,
-  };
+  throw new Error(`AirLock: exceeded max redirects (${MAX_REDIRECTS}) for ${url}`);
 }
 
 /**
- * Check if a publisher offers a signed AirLock packet via .well-known endpoint.
+ * Check for publisher discovery metadata.
+ * Discovery is recorded as context but NEVER bypasses the normal scanner path.
+ * Only a cryptographically verified Phase 4 signature can set packet_origin='publisher'.
+ *
  * @param {string} url
- * @returns {Promise<{packet: object|null, verified: boolean}>}
+ * @returns {Promise<{packet: object|null, verified: boolean, source: string}|null>}
  */
-async function checkPublisherDiscovery(url) {
+async function checkPublisherDiscoveryMeta(url) {
   const parsed = new URL(url);
   const discoveryUrl = `${parsed.protocol}//${parsed.host}/.well-known/airlock.json`;
 
@@ -109,23 +196,26 @@ async function checkPublisherDiscovery(url) {
     });
 
     if (!response.data || response.data.airlock_version !== '1.0') {
-      return { packet: null, verified: false };
+      return null;
     }
 
-    // Try to fetch the publisher's feed/packet
-    // For now, just return the discovery doc — the agent wrapper will handle feed subscription
-    // Phase 4 will implement full subscription delivery
-    return { packet: response.data, verified: false };
+    // Discovery found — record it as UNVERIFIED metadata.
+    // The normal scanner path runs next. The discovery meta is available
+    // to the agent wrapper if it wants to include it as context.
+    return {
+      packet: response.data,
+      verified: false, // Phase 4 will implement cryptographic verification
+      source: 'discovery',
+      url: discoveryUrl,
+      discoveredAt: new Date().toISOString(),
+    };
   } catch {
-    // No discovery endpoint — fall through to scanner
-    return { packet: null, verified: false };
+    return null;
   }
 }
 
-/**
- * Simple robots.txt check (user-agent: * only for now).
- * Cache per host to avoid repeated requests.
- */
+// ── Robots.txt ───────────────────────────────────────────────────────────────
+
 const robotsCache = new Map();
 
 async function checkRobotsTxt(url) {
@@ -133,9 +223,7 @@ async function checkRobotsTxt(url) {
   const host = parsed.host;
 
   if (robotsCache.has(host)) {
-    const rules = robotsCache.get(host);
-    const path = parsed.pathname;
-    return checkAllow(rules, path);
+    return checkAllow(robotsCache.get(host), parsed.pathname);
   }
 
   try {
@@ -149,7 +237,6 @@ async function checkRobotsTxt(url) {
     robotsCache.set(host, rules);
     return checkAllow(rules, parsed.pathname);
   } catch {
-    // No robots.txt = allowed
     robotsCache.set(host, { allow: [/.*/], disallow: [] });
     return true;
   }
@@ -208,11 +295,6 @@ function resolveUrl(base, relative) {
   }
 }
 
-/**
- * Compute SHA-256 hash of content for packet integrity.
- * @param {string} content
- * @returns {string}
- */
 export function computeHash(content) {
   return 'sha256:' + crypto.createHash('sha256').update(content, 'utf8').digest('hex');
 }

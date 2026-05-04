@@ -1,12 +1,41 @@
 /**
  * AirLock Scanner — HTTP API Server
- * Exposes scan() as a REST endpoint for Cloud Run deployment.
+ * Exposes scan() as a REST endpoint.
+ *
+ * Security: API key is REQUIRED by default.
+ * Set AIRLOCK_DEV_MODE=true to allow unauthenticated access (local dev only).
  */
 
 import { createServer } from 'http';
+import { readFileSync } from 'fs';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { scan } from './agent-wrapper.js';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Load version from package.json
+let VERSION = '0.1.0';
+try {
+  const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8'));
+  VERSION = pkg.version || VERSION;
+} catch { /* use default */ }
+
 const PORT = process.env.PORT || 8080;
+const DEV_MODE = process.env.AIRLOCK_DEV_MODE === 'true';
+const API_KEY = process.env.AIRLOCK_API_KEY;
+
+// ── Security: Require API key unless in dev mode ────────────────────────────
+
+if (!API_KEY && !DEV_MODE) {
+  console.error('AirLock: AIRLOCK_API_KEY is not set and AIRLOCK_DEV_MODE is not enabled.');
+  console.error('AirLock: Refusing to start. Set AIRLOCK_API_KEY or AIRLOCK_DEV_MODE=true');
+  process.exit(1);
+}
+
+if (DEV_MODE) {
+  console.warn('⚠️  AirLock: DEV MODE — API key not required. Do not deploy this to production.');
+}
 
 // In-memory request count for status
 let requestCount = 0;
@@ -25,8 +54,10 @@ function jsonBody(req, res) {
 }
 
 function authMiddleware(req, res) {
+  if (DEV_MODE) return null; // Dev mode skips auth
+
   const apiKey = process.env.AIRLOCK_API_KEY;
-  if (!apiKey) return null; // No key configured — allow all
+  if (!apiKey) return 'no-key'; // Should not reach here due to startup check
 
   const header = req.headers['authorization'] || '';
   const token = header.replace(/^Bearer\s+/i, '').trim();
@@ -59,7 +90,7 @@ const routes = {
 function parseBody(req) {
   return new Promise((resolve, reject) => {
     let body = '';
-    req.on('data', chunk => body += chunk);
+    req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
       try { resolve(body ? JSON.parse(body) : {}); }
       catch { reject(new Error('Invalid JSON')); }
@@ -70,32 +101,33 @@ function parseBody(req) {
 
 // ── Handlers ───────────────────────────────────────────────
 
-function healthHandler(req, res, params, query) {
+function healthHandler(req, res) {
   res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ status: 'ok', service: 'airlock-scanner' }));
+  res.end(JSON.stringify({ status: 'ok', service: 'airlock-scanner', version: VERSION }));
 }
 
-function statusHandler(req, res, params, query) {
+function statusHandler(req, res) {
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({
     status: 'ok',
+    version: VERSION,
     uptime_seconds: Math.floor((Date.now() - startTime) / 1000),
     request_count: requestCount,
-    version: '0.1.0'
+    auth_required: !DEV_MODE,
   }));
 }
 
-function rootHandler(req, res, params, query) {
+function rootHandler(req, res) {
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({
     name: 'TheAgentDeck AirLock Scanner',
-    version: '0.1.0',
+    version: VERSION,
     docs: 'POST /scan',
-    health: 'GET /health'
+    health: 'GET /health',
   }));
 }
 
-async function scanHandler(req, res, params, query) {
+async function scanHandler(req, res) {
   requestCount++;
   const authError = authMiddleware(req, res);
   if (authError !== null) return;
@@ -103,7 +135,7 @@ async function scanHandler(req, res, params, query) {
   let body;
   try {
     body = await parseBody(req);
-  } catch (err) {
+  } catch {
     res.writeHead(400, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Invalid JSON body' }));
     return;
@@ -117,14 +149,19 @@ async function scanHandler(req, res, params, query) {
     return;
   }
 
-  // Input validation
-  const parsedUrl = (() => {
-    try { return new URL(url); }
-    catch { return null; }
-  })();
-  if (!parsedUrl || !['http:', 'https:'].includes(parsedUrl.protocol)) {
+  // Validate URL scheme before passing to scanner
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
     res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'url must be a valid http or https URL' }));
+    res.end(JSON.stringify({ error: 'url must be a valid URL' }));
+    return;
+  }
+
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'url must use http or https protocol' }));
     return;
   }
 
@@ -143,7 +180,7 @@ async function scanHandler(req, res, params, query) {
 
     res.writeHead(200, {
       'Content-Type': 'application/json',
-      'X-AirLock-Version': '0.1.0',
+      'X-AirLock-Version': VERSION,
       'X-Scan-Id': packet.scan_id,
       'X-Process-Ms': elapsed.toString(),
     });
@@ -156,7 +193,7 @@ async function scanHandler(req, res, params, query) {
         trust_level: packet.trust_level,
         process_ms: elapsed,
         packet_hash: packet.packet_hash,
-      }
+      },
     }));
   } catch (err) {
     console.error(`Scan failed for ${url}:`, err.message);
@@ -190,20 +227,14 @@ function route(req, res) {
   const method = req.method;
   const pathname = req.url.split('?')[0];
 
-  // Find matching route
   let handler = null;
   for (const [routeKey, h] of Object.entries(routes)) {
     const [m, path] = routeKey.split(' ');
     if (m !== method) continue;
-
-    // Exact match
     if (path === pathname) { handler = h; break; }
-
-    // Pattern match (e.g., /scan matches POST /scan)
     const pathParts = path.split('/').filter(Boolean);
     const urlParts = pathname.split('/').filter(Boolean);
     if (pathParts.length !== urlParts.length) continue;
-
     const matches = pathParts.every((part, i) =>
       part.startsWith(':') || part === urlParts[i]
     );
@@ -222,12 +253,12 @@ function route(req, res) {
 const server = createServer(route);
 
 server.listen(PORT, () => {
-  console.log(`TheAgentDeck AirLock Scanner running on port ${PORT}`);
+  console.log(`TheAgentDeck AirLock Scanner v${VERSION} running on port ${PORT}`);
   console.log(`Health: GET /health`);
   console.log(`Scan:   POST /scan with {"url": "https://..."}`);
-  if (process.env.AIRLOCK_API_KEY) {
-    console.log(`API key: REQUIRED (Bearer token)`);
+  if (DEV_MODE) {
+    console.log(`Auth:   DEV MODE — no API key required`);
   } else {
-    console.log(`API key: NOT CONFIGURED — allowing all requests`);
+    console.log(`Auth:   REQUIRED (Bearer token)`);
   }
 });
