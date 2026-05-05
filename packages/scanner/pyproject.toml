@@ -1,32 +1,22 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=77.0.3", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "airlock-codes"
-version = "0.1.0"
-description = "AirLock — Source-to-sink firewall for agentic web browsing"
+version = "0.2.2"
+description = "AirLock — source-to-sink firewall for agentic web browsing"
 readme = "README.md"
 license = "MIT"
-authors = [
-    {name = "TheAgentDeck", email = "founders@theagentdeck.ai"}
-]
+license-files = ["LICENSE*"]
+authors = [{name = "TheAgentDeck", email = "founders@theagentdeck.ai"}]
 keywords = ["airlock", "prompt-injection", "agent-security", "ai-safety", "agentic", "scanner"]
 classifiers = [
     "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Topic :: Security",
 ]
 requires-python = ">=3.8"
-
-[project.optional-dependencies]
-dev = ["build", "twine"]
 
 [project.scripts]
 airlock = "airlock.__main__:main"
