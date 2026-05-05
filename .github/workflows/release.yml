@@ -17,7 +17,7 @@ jobs:
       - name: Build dist
         run: |
           python3 -m pip install build
-          cd packages/scanner && python3 -m build --formats=wheel --no-sdist
+          cd packages/scanner && python3 -m build --wheel --no-sdist
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
