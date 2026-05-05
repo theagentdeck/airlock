@@ -14,13 +14,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '22'
-
       - name: Build dist
         run: |
-          npm ci packages/scanner
           python3 -m pip install build
           cd packages/scanner && python3 -m build
 
