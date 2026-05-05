@@ -8,22 +8,23 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write  # required for trusted publishing
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Build dist
         run: |
-          python3 -m pip install build
+          python3 -m pip install build twine
           cd packages/scanner && python3 -m build --wheel
 
       - name: Copy dist to workspace root
         run: |
           mkdir -p dist
           cp packages/scanner/dist/*.whl dist/
-          ls dist/
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        env:
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+          TWINE_USERNAME: __token__
+        run: |
+          twine upload dist/*
