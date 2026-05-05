@@ -1,7 +1,7 @@
 Metadata-Version: 2.4
 Name: airlock-codes
 Version: 0.1.0
-Summary: TheAgentDeck AirLock — Source-to-sink firewall for agentic web browsing
+Summary: AirLock — Source-to-sink firewall for agentic web browsing
 Author-email: TheAgentDeck <founders@theagentdeck.ai>
 License-Expression: MIT
 Keywords: airlock,prompt-injection,agent-security,ai-safety,agentic,scanner
@@ -19,3 +19,35 @@ Description-Content-Type: text/markdown
 Provides-Extra: dev
 Requires-Dist: build; extra == "dev"
 Requires-Dist: twine; extra == "dev"
+
+# AirLock Scanner
+
+> Source-to-sink firewall for agentic web browsing.
+
+**airlock-codes** is the Python package for the AirLock scanner. It strips prompt injection, hostile instructions, and hidden content before your AI agent sees it.
+
+## Installation
+
+```bash
+pip install airlock-codes
+```
+
+## CLI
+
+```bash
+airlock https://example.com
+airlock https://example.com --json
+```
+
+## Library
+
+```python
+from airlock import scan
+
+result = scan("https://example.com")
+print(result["page_risk"], result["trust_level"])
+```
+
+## Documentation
+
+Full documentation at [airlock.codes](https://airlock.codes)
