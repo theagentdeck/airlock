@@ -7,8 +7,6 @@ name = "airlock-codes"
 version = "0.1.0"
 description = "AirLock — Source-to-sink firewall for agentic web browsing"
 readme = "README.md"
-long_description = "file: README.md"
-long_description_content_type = "text/markdown"
 license = "MIT"
 authors = [
     {name = "TheAgentDeck", email = "founders@theagentdeck.ai"}
