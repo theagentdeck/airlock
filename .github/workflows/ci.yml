@@ -14,14 +14,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: packages/scanner/package-lock.json
 
       - name: Scanner dependencies
-        run: npm ci packages/scanner
+        run: cd packages/scanner && npm ci && cd ../..
 
       - name: Scanner CLI smoke test
         run: node packages/scanner/src/cli.js --help
