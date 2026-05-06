@@ -26,20 +26,18 @@ RUN cd api && npm install
 # Step 7: copy api source
 COPY api/src/ ./api/src/
 
+# Step 8: tsconfig.json must land at /app/api/tsconfig.json (not /app/api/src/)
+COPY api/tsconfig.json ./api/tsconfig.json
+
 # ── Diagnostic before build ───────────────────────────
 RUN echo "=== DIAGNOSTIC ===" \
  && echo "PWD=$(pwd)" \
- && echo "--- /app ---" && ls -la \
- && echo "--- /app/packages ---" && ls -la packages/ \
- && echo "--- /app/packages/scanner ---" && ls -la packages/scanner/ \
  && echo "--- /app/api ---" && ls -la api/ \
- && echo "--- /app/api/packages ---" && ls -la api/packages/ \
- && echo "--- /app/api/packages/scanner ---" && ls -la api/packages/scanner/ \
- && echo "--- api/src ---" && ls -la api/src/ \
- && echo "--- find scanner ---" && find . -name "package.json" -maxdepth 4 \
+ && echo "--- /app/api/src ---" && ls -la api/src/ \
+ && echo "--- /app/api/tsconfig.json exists? ---" && test -f api/tsconfig.json && echo YES || echo NO \
  && echo "=== END DIAGNOSTIC ==="
 
-# Step 8: build
+# Step 9: build
 RUN cd api && npm run build
 
 # ── Stage 2: Runtime ──────────────────────────────────
