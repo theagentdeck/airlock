@@ -83,7 +83,7 @@ jobs:
             --concurrency=80 \
             --timeout=60s \
             --set-env-vars="NODE_ENV=production,APP_URL=https://airlock.codes" \
-            --set-secrets="STRIPE_SECRET_KEY=stripe-secret-key:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest,SUPABASE_URL=supabase-url:latest,SUPABASE_SERVICE_KEY=supabase-service-key:latest" \
+            --set-secrets="STRIPE_SECRET_KEY=stripe-secret-key:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest,SUPABASE_URL=supabase-url:latest,SUPABASE_SERVICE_KEY=supabase-service-key:latest,STRIPE_PRICE_STARTER=stripe-price-starter:latest,STRIPE_PRICE_PRO=stripe-price-pro:latest,STRIPE_PRICE_SCALE=stripe-price-scale:latest" \
             --quiet
 
       - name: Report deployment URL
