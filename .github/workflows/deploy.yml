@@ -72,6 +72,7 @@ jobs:
             --image="us-central1-docker.pkg.dev/airlock-scanner/airlock/airlock-api:latest" \
             --region=us-central1 \
             --project=airlock-scanner \
+            --service-account=airlock-api-runtime@airlock-scanner.iam.gserviceaccount.com \
             --platform=managed \
             --allow-unauthenticated \
             --port=8080 \
