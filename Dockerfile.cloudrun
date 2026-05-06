@@ -6,13 +6,13 @@ FROM node:20-alpine AS deps
 
 WORKDIR /app
 
-# Scanner deps
+# Scanner deps — use npm install (not ci) to handle version range flexibility
 COPY packages/scanner/package.json packages/scanner/package-lock.json* ./packages/scanner/
-RUN cd packages/scanner && npm ci
+RUN cd packages/scanner && npm install
 
 # API deps (includes scanner via file: protocol)
 COPY api/package.json api/package-lock.json* ./
-RUN npm ci
+RUN npm install
 
 # ── Stage 2: Build API ────────────────────────────────
 FROM node:20-alpine AS builder
