@@ -6,11 +6,11 @@ FROM node:20-alpine AS deps
 
 WORKDIR /app
 
-# Scanner deps — use npm install (not ci) to handle version range flexibility
+# Scanner deps
 COPY packages/scanner/package.json packages/scanner/package-lock.json* ./packages/scanner/
 RUN cd packages/scanner && npm install
 
-# API deps (includes scanner via file: protocol)
+# API deps
 COPY api/package.json api/package-lock.json* ./
 RUN npm install
 
@@ -20,11 +20,14 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY packages/scanner/src/ ./packages/scanner/src/
+COPY packages/scanner/src/ ./scanner-src/
 COPY packages/scanner/policies/ ./policies/
 COPY packages/scanner/package.json ./packages/scanner/package.json
 COPY api/src/ ./api-src/
-COPY api/tsconfig.json ./api/tsconfig.json
+COPY api/tsconfig.json ./api-tsconfig.json
+
+# Reconstruct api/ tree for TypeScript compiler
+RUN mkdir -p api/src && cp -r ./api-src/* ./api/src/ && cp ./api-tsconfig.json ./api/tsconfig.json
 
 RUN npm run build --prefix api
 
