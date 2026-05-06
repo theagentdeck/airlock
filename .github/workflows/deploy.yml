@@ -79,7 +79,7 @@ jobs:
             --memory=1Gi \
             --cpu=2 \
             --min-instances=0 \
-            --max-instances=20 \
+            --max-instances=10 \
             --concurrency=80 \
             --timeout=60s \
             --set-env-vars="NODE_ENV=production,APP_URL=https://airlock.codes" \
