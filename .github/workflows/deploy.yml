@@ -8,19 +8,11 @@ on:
       - 'packages/scanner/**'
       - 'Dockerfile.cloudrun'
   workflow_dispatch:
-    inputs:
-      service_name:
-        description: 'Cloud Run service name'
-        required: false
-        default: 'airlock-api'
 
 env:
   PROJECT_ID: airlock-scanner
   REGION: us-central1
   SERVICE_NAME: airlock-api
-  REPOSITORY: airlock
-  IMAGE: $REGION-docker.pkg.dev/$PROJECT_ID/$REPOSITORY/$SERVICE_NAME
-  GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
 
 jobs:
   setup:
@@ -37,7 +29,6 @@ jobs:
   deploy:
     needs: setup
     runs-on: ubuntu-latest
-    environment: production
 
     steps:
       - uses: actions/checkout@v4
@@ -45,39 +36,40 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2.1.0
         with:
-          credentials_json: ${{ env.GCP_SA_KEY }}
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2.1.0
 
       - name: Configure Docker auth
-        run: gcloud auth configure-docker $REGION-docker.pkg.dev --quiet
+        run: gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
 
       - name: Create Artifact Registry repository
         run: |
-          if ! gcloud artifacts repositories describe $REPOSITORY \
-            --location=$REGION --quiet 2>/dev/null; then
-            gcloud artifacts repositories create $REPOSITORY \
+          if ! gcloud artifacts repositories describe airlock \
+            --location=us-central1 --quiet 2>/dev/null; then
+            gcloud artifacts repositories create airlock \
               --repository-format=docker \
-              --location=$REGION \
+              --location=us-central1 \
               --description="AirLock container images"
           fi
 
       - name: Build and push container image
         run: |
+          IMAGE="us-central1-docker.pkg.dev/airlock-scanner/airlock/airlock-api"
           docker build \
             --file Dockerfile.cloudrun \
-            --tag $IMAGE:${{ needs.setup.outputs.short_sha }}-${{ github.run_number }} \
-            --tag $IMAGE:latest \
+            --tag "${IMAGE}:${{ needs.setup.outputs.short_sha }}-${{ github.run_number }}" \
+            --tag "${IMAGE}:latest" \
             .
-          docker push $IMAGE:latest
-          docker push $IMAGE:${{ needs.setup.outputs.short_sha }}-${{ github.run_number }}
+          docker push "${IMAGE}:latest"
+          docker push "${IMAGE}:${{ needs.setup.outputs.short_sha }}-${{ github.run_number }}"
 
       - name: Deploy to Cloud Run
         run: |
-          gcloud run deploy $SERVICE_NAME \
-            --image=$IMAGE:latest \
-            --region=$REGION \
+          gcloud run deploy airlock-api \
+            --image="us-central1-docker.pkg.dev/airlock-scanner/airlock/airlock-api:latest" \
+            --region=us-central1 \
             --platform=managed \
             --allow-unauthenticated \
             --port=8080 \
@@ -93,8 +85,8 @@ jobs:
 
       - name: Report deployment URL
         run: |
-          URL=$(gcloud run services describe $SERVICE_NAME \
-            --region=$REGION \
+          URL=$(gcloud run services describe airlock-api \
+            --region=us-central1 \
             --format="value(status.url)" | sed 's|https://||')
           echo ""
           echo "✅ AirLock API deployed to: https://${URL}"
