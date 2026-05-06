@@ -47,11 +47,12 @@ jobs:
       - name: Create Artifact Registry repository
         run: |
           if ! gcloud artifacts repositories describe airlock \
-            --location=us-central1 --quiet 2>/dev/null; then
+            --location=us-central1 --project=airlock-scanner --quiet 2>/dev/null; then
             gcloud artifacts repositories create airlock \
               --repository-format=docker \
               --location=us-central1 \
-              --description="AirLock container images"
+              --description="AirLock container images" \
+              --project=airlock-scanner
           fi
 
       - name: Build and push container image
@@ -70,6 +71,7 @@ jobs:
           gcloud run deploy airlock-api \
             --image="us-central1-docker.pkg.dev/airlock-scanner/airlock/airlock-api:latest" \
             --region=us-central1 \
+            --project=airlock-scanner \
             --platform=managed \
             --allow-unauthenticated \
             --port=8080 \
@@ -80,13 +82,13 @@ jobs:
             --concurrency=80 \
             --timeout=60s \
             --set-env-vars="NODE_ENV=production,APP_URL=https://airlock.codes" \
-            --set-secrets="STRIPE_SECRET_KEY=stripe-secret-key:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest,SUPABASE_URL=supabase-url:latest,SUPABASE_SERVICE_KEY=supabase-service-key:latest,STRIPE_PRICE_STARTER=stripe-price-starter:latest,STRIPE_PRICE_PRO=stripe-price-pro:latest,STRIPE_PRICE_SCALE=stripe-price-scale:latest" \
             --quiet
 
       - name: Report deployment URL
         run: |
           URL=$(gcloud run services describe airlock-api \
             --region=us-central1 \
+            --project=airlock-scanner \
             --format="value(status.url)" | sed 's|https://||')
           echo ""
           echo "✅ AirLock API deployed to: https://${URL}"
