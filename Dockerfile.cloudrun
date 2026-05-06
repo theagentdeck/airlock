@@ -20,14 +20,21 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
+
+# Scanner
 COPY packages/scanner/src/ ./scanner-src/
 COPY packages/scanner/policies/ ./policies/
 COPY packages/scanner/package.json ./packages/scanner/package.json
+
+# API source + package.json (needed for npm run build)
 COPY api/src/ ./api-src/
+COPY api/package.json ./api-package.json
 COPY api/tsconfig.json ./api-tsconfig.json
 
-# Reconstruct api/ tree for TypeScript compiler
-RUN mkdir -p api/src && cp -r ./api-src/* ./api/src/ && cp ./api-tsconfig.json ./api/tsconfig.json
+# Reconstruct api/ tree (TypeScript compiler needs ./api/src, ./api/tsconfig.json, ./api/package.json)
+RUN mkdir -p api/src && cp -r ./api-src/* ./api/src/
+COPY ./api-package.json ./api/package.json
+COPY ./api-tsconfig.json ./api/tsconfig.json
 
 RUN npm run build --prefix api
 
