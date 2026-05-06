@@ -1,0 +1,54 @@
+# AirLock — Unified API + Scanner for Cloud Run
+# Handles: POST /scan (subscriber auth), POST /checkout, POST /webhook, POST /portal, GET /subscription
+
+# ── Stage 1: Install all deps ──────────────────────────
+FROM node:20-alpine AS deps
+
+WORKDIR /app
+
+# Scanner deps
+COPY packages/scanner/package.json packages/scanner/package-lock.json* ./packages/scanner/
+RUN cd packages/scanner && npm ci
+
+# API deps (includes scanner via file: protocol)
+COPY api/package.json api/package-lock.json* ./
+RUN npm ci
+
+# ── Stage 2: Build API ────────────────────────────────
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY packages/scanner/src/ ./packages/scanner/src/
+COPY packages/scanner/policies/ ./policies/
+COPY packages/scanner/package.json ./packages/scanner/package.json
+COPY api/src/ ./api-src/
+COPY api/tsconfig.json ./api/tsconfig.json
+
+RUN npm run build --prefix api
+
+# ── Stage 3: Production ──────────────────────────────
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Runtime deps only
+COPY --from=deps /app/node_modules ./node_modules
+
+# Scanner source
+COPY --from=builder /app/packages/scanner ./packages/scanner
+COPY --from=builder /app/policies ./policies
+
+# Compiled API
+COPY --from=builder /app/api/dist ./dist
+
+ENV NODE_ENV=production
+ENV PORT=8080
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD wget -qO- http://localhost:8080/health || exit 1
+
+CMD ["node", "dist/index.js"]
