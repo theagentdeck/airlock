@@ -40,7 +40,7 @@ function initSchema(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS airlock_scans (
       scan_id          TEXT PRIMARY KEY,
-      requesting_agent TEXT NOT NULL,
+      requesting_agent TEXT DEFAULT 'unknown',
       mission          TEXT,
       source_url       TEXT NOT NULL,
       packet_origin    TEXT NOT NULL,
@@ -112,7 +112,7 @@ export async function logScan({
 
   stmt.run(
     scan_id,
-    requesting_agent,
+    requesting_agent || 'unknown',
     mission,
     source_url,
     packet_origin,
